@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>弾道＆番手メモ（日付別GitHubログ対応）</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0f172a;
+      color: #e5e7eb;
+      font-family: system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+      font-size: 1.1rem; line-height: 1.5;
+    }
+    header { background:#111827; padding:12px 16px; border-bottom:1px solid #1f2937; }
+    header h1 { margin:0; font-size:1.375rem; } /* ≒22px */
+    main { padding:16px; max-width:860px; margin:0 auto; }
+    .card { background:#111827; border:1px solid #1f2937; border-radius:12px; padding:16px; margin-bottom:20px; }
+    label { display:block; margin-bottom:4px; font-size:.95rem; color:#9ca3af; }
+    input,select,textarea,button {
+      width:100%; padding:10px; margin-bottom:12px; border-radius:8px;
+      border:1px solid #334155; background:#0b1220; color:#e5e7eb; font-size:1.1875rem; /* ≒19px */
+    }
+    textarea { min-height:100px; resize:vertical; }
+    button { cursor:pointer; font-weight:600; }
+    .primary { background:#22c55e; color:#07210f; border:0; }
+    .ghost { background:#0b1220; border:1px dashed #334155; color:#9ca3af; }
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; }
+    table { width:100%; border-collapse:collapse; font-size:.95rem; }
+    th,td { border-bottom:1px solid #223047; padding:6px; text-align:left; }
+    th { color:#cbd5e1; }
+  </style>
+</head>
+<body>
+<header><h1>弾道＆番手メモ</h1></header>
+<main>
+  <!-- 入力フォーム -->
+  <section class="card" id="form-card">
+    <label for="date">日付</label>
+    <input type="date" id="date">
+
+    <label for="club">番手</label>
+    <select id="club"></select>
+
+    <label for="height">高さ</label>
+    <select id="height">
+      <option value="高">高</option><option value="中" selected>中</option><option value="低">低</option>
+    </select>
+
+    <label for="start">打ち出し方向</label>
+    <select id="start">
+      <option value="左">左</option><option value="センター" selected>センター</option><option value="右">右</option>
+    </select>
+
+    <label for="curve">曲がり</label>
+    <select id="curve">
+      <option value="ストレート" selected>ストレート</option><option value="ドロー">ドロー</option>
+      <option value="フェード">フェード</option><option value="フック">フック</option><option value="スライス">スライス</option>
+    </select>
+
+    <label for="strike">打点</label>
+    <select id="strike">
+      <option value="センター" selected>センター</option><option value="薄い(トップ)">薄い(トップ)</option>
+      <option value="ダフリ">ダフリ</option><option value="トゥ">トゥ</option><option value="ヒール">ヒール</option>
+    </select>
+
+    <label for="carry">キャリー(任意・yd)</label>
+    <input type="number" inputmode="decimal" id="carry" placeholder="例: 155">
+
+    <label for="quality">出来（主観）</label>
+    <select id="quality">
+      <option value="◎">◎</option><option value="○" selected>○</option><option value="△">△</option><option value="×">×</option>
+    </select>
+
+    <label for="note">メモ</label>
+    <textarea id="note" placeholder="風、ライ、狙い、反省点など"></textarea>
+
+    <div class="toolbar">
+      <button class="primary" id="add">記録する</button>
+      <button class="ghost" id="clearForm">入力クリア</button>
+    </div>
+  </section>
+
+  <!-- 最近の記録（端末内・永続） -->
+  <section class="card">
+    <h2 style="font-size:1rem;margin-top:0">最近の記録（端末内）</h2>
+    <table id="logTable">
+      <thead>
+        <tr>
+          <th>日付</th><th>番手</th><th>高さ</th><th>打ち出し</th><th>曲がり</th>
+          <th>打点</th><th>出来</th><th>キャリー</th><th>メモ</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- GitHub同期（手動、日付別CSV） -->
+  <section class="card">
+    <strong>GitHub 同期（手動・日付別CSV）</strong>
+    <div class="toolbar" style="margin-top:8px">
+      <input id="ghOwner" placeholder="Owner（例: shot72）" style="max-width:220px">
+      <input id="ghRepo"  placeholder="Repo（例: golf-links）" style="max-width:220px">
+      <input id="ghBranch" placeholder="Branch（例: main）" value="main" style="max-width:160px">
+      <input id="ghDir"   placeholder="保存ディレクトリ（例: logs）" value="logs" style="max-width:240px">
+      <input id="ghToken" placeholder="GitHub Token" type="password" style="min-width:260px">
+    </div>
+    <div class="toolbar">
+      <button id="ghSave">設定を保存</button>
+      <button class="primary" id="ghSync">GitHubへ同期（全日分）</button>
+    </div>
+    <p class="muted" style="color:#9ca3af;font-size:.9rem;margin:6px 0 0">
+      ※ このトークン等は <b>この端末のLocalStorage</b> にのみ保存。公開ページには埋め込みません。通信時のみ GitHub API へ送信します。
+    </p>
+  </section>
+</main>
+
+<script>
+/* ========= データ＆UI ========= */
+const CLUBS = ["DR(1W)","3W","5W","7W","3U","4U","5U","3I","4I","5I","6I","7I","8I","9I","PW","AW","SW","LW"];
+const els = {
+  date: document.getElementById('date'), club: document.getElementById('club'),
+  height: document.getElementById('height'), start: document.getElementById('start'),
+  curve: document.getElementById('curve'), strike: document.getElementById('strike'),
+  carry: document.getElementById('carry'), quality: document.getElementById('quality'),
+  note: document.getElementById('note'), add: document.getElementById('add'),
+  clear: document.getElementById('clearForm'), tableBody: document.querySelector('#logTable tbody')
+};
+CLUBS.forEach(n=>{ const o=document.createElement('option'); o.value=o.textContent=n; els.club.appendChild(o); });
+function today(){ const d=new Date(); const tz=d.getTimezoneOffset(); return new Date(d.getTime()-tz*60000).toISOString().slice(0,10); }
+function getLocal(){ try { return JSON.parse(localStorage.getItem('golfShots')||'[]'); } catch { return [] } }
+function setLocal(arr){ localStorage.setItem('golfShots', JSON.stringify(arr)); }
+function clearForm(){ els.date.value=today(); els.club.value="7I"; els.height.value="中"; els.start.value="センター"; els.curve.value="ストレート"; els.strike.value="センター"; els.carry.value=""; els.quality.value="○"; els.note.value=""; }
+function render(){ const arr=getLocal(); els.tableBody.innerHTML = arr.slice().reverse().map(r=>`
+<tr><td>${r.date}</td><td>${r.club}</td><td>${r.height}</td><td>${r.start}</td>
+<td>${r.curve}</td><td>${r.strike}</td><td>${r.quality}</td><td>${r.carry??""}</td><td>${(r.note||"").replace(/</g,"&lt;")}</td></tr>`).join(''); }
+function addRecord(){ const rec={id:crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2), date:els.date.value||today(), club:els.club.value, height:els.height.value, start:els.start.value, curve:els.curve.value, strike:els.strike.value, carry:els.carry.value?Number(els.carry.value):null, quality:els.quality.value, note:els.note.value.trim(), ts:new Date().toISOString()}; const arr=getLocal(); arr.push(rec); setLocal(arr); render(); clearForm(); }
+clearForm(); render(); els.add.addEventListener('click', addRecord); els.clear.addEventListener('click', clearForm);
+
+/* ========= GitHub 同期（日付別CSV） ========= */
+const gh={owner:document.getElementById('ghOwner'),repo:document.getElementById('ghRepo'),branch:document.getElementById('ghBranch'),dir:document.getElementById('ghDir'),token:document.getElementById('ghToken'),save:document.getElementById('ghSave'),sync:document.getElementById('ghSync')};
+function loadGhSettings(){const s=JSON.parse(localStorage.getItem('ghSync')||'{}'); gh.owner.value=s.owner||'shot72'; gh.repo.value=s.repo||'golf-links'; gh.branch.value=s.branch||'main'; gh.dir.value=s.dir||'logs'; gh.token.value=s.token||'';}
+function saveGhSettings(){const s={owner:gh.owner.value.trim(),repo:gh.repo.value.trim(),branch:gh.branch.value.trim(),dir:gh.dir.value.trim().replace(/^\/+|\/+$/g,''),token:gh.token.value.trim()}; localStorage.setItem('ghSync',JSON.stringify(s)); alert('GitHub設定を保存しました');}
+loadGhSettings(); gh.save.addEventListener('click', saveGhSettings);
+function csvHeader(){return['id','ts','date','club','height','start','curve','strike','quality','carry','note'].join(',');}
+function toCsvRow(r){const esc=v=>{if(v===null||v===undefined)return'';v=String(v);return'"'+v.replaceAll('"','""')+'"';};return[r.id,r.ts,r.date,r.club,r.height,r.start,r.curve,r.strike,r.quality,(r.carry??''),r.note].map(x=>typeof x==='string'?esc(x):x).join(',');}
+function b64encode(str){return btoa(unescape(encodeURIComponent(str)));}
+function b64decode(b64){return decodeURIComponent(escape(atob(b64)));}
+async function getSha(owner,repo,path,branch,token){const url=`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`; const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json'}}); if(r.status===200){const j=await r.json(); return j.sha;} return null;}
+async function putFile({owner,repo,branch,path,token,content,message,sha}){const url=`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`; const body={message,content:b64encode(content),branch,...(sha?{sha}:{})}; const res=await fetch(url,{method:'PUT',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',Accept:'application/vnd.github+json'},body:JSON.stringify(body)}); if(!res.ok){throw new Error(await res.text());} return res.json();}
+async function fetchFileContent(owner,repo,path,branch,token){const url=`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`; const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json'}}); if(r.status===200){const j=await r.json(); return {sha:j.sha,text:b64decode(j.content)};} return {sha:null,text:null};}
+async function syncAllDates(){const s=JSON.parse(localStorage.getItem('ghSync')||'{}'); if(!s.token){alert('GitHub Token を設定してください'); return;} const data=getLocal(); if(!data.length){alert('同期するデータがありません'); return;} const groups=new Map(); for(const r of data){if(!groups.has(r.date))groups.set(r.date,[]); groups.get(r.date).push(r);} gh.sync.disabled=true; gh.sync.textContent='同期中…'; try{for(const [date,rows] of groups){const relPath=`${s.dir}/${date}.csv`; const path=relPath.replace(/^\/+/,''); const {sha,text}=await fetchFileContent(s.owner,s.repo,path,s.branch,s.token); let newContent=''; if(text){ newContent=text.trim(); const needsHeader=!newContent.startsWith('id,ts,date,club,height,start,curve,strike,quality,carry,note'); if(needsHeader){ newContent=csvHeader()+'\n'+newContent; } for(const r of rows){ newContent+='\n'+toCsvRow(r); } } else { newContent=csvHeader()+'\n'+rows.map(toCsvRow).join('\n'); } await putFile({owner:s.owner,repo:s.repo,branch:s.branch,path,token:s.token,content:newContent,message:`sync ${date} (${rows.length} recs)`,sha}); } alert('GitHubへ同期しました ✅'); }catch(e){alert('同期に失敗しました：'+e.message);} finally{gh.sync.disabled=false; gh.sync.textContent='GitHubへ同期（全日分）';}}
+gh.sync.addEventListener('click', syncAllDates);
+</script>
+</body>
+</html>
