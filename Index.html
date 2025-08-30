@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>弾道＆番手メモ</title>
+  <style>
+    :root{--bg:#0f172a;--card:#111827;--muted:#1f2937;--text:#e5e7eb;--sub:#9ca3af;--accent:#22c55e}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Meiryo",sans-serif;font-size:1.5em;line-height:1.6}
+    header{position:sticky;top:0;background:linear-gradient(180deg,rgba(15,23,42,.9),rgba(15,23,42,.6));backdrop-filter: blur(6px);padding:20px 24px;border-bottom:2px solid #1f2937;z-index:10}
+    header h1{margin:0;font-size:1.8em} header small{color:var(--sub);font-size:0.6em}
+    main{padding:24px;display:block;max-width:100%;margin:0 auto}
+    .card{background:var(--card);border:2px solid var(--muted);border-radius:20px;padding:24px;margin-bottom:32px}
+    .row,.row-3{display:block;margin-bottom:20px}
+    label{font-size:1em;color:var(--sub);display:block;margin-bottom:8px}
+    input,select,textarea,button{width:100%;padding:14px;border-radius:16px;border:2px solid #334155;background:#0b1220;color:var(--text);font-size:1.2em}
+    textarea{min-height:120px;resize:vertical}
+    button{cursor:pointer;font-weight:600}
+    .primary{background:var(--accent);color:#07210f;border:0}
+    .ghost{background:#0b1220;border:2px dashed #334155}
+    .toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+    .tag{padding:8px 14px;border-radius:999px;border:2px solid #334155;background:#0b1220;color:var(--sub);font-size:0.9em}
+    table{width:100%;border-collapse:collapse;font-size:1em}
+    th,td{border-bottom:2px solid #223047;padding:12px;text-align:left}
+    th{color:#cbd5e1}
+    tr:hover{background:#0b1220}
+    .stat{display:block}
+    .stat .box{background:#0b1220;border:2px solid #334155;border-radius:20px;padding:16px;margin-bottom:16px;font-size:1em}
+    .right{justify-self:end}
+    .muted{color:var(--sub);font-size:0.9em}
+  </style>
+</head>
+<body>
+<header>
+  <h1>弾道＆番手メモ <small>（ローカル保存・オフライン可）</small></h1>
+</header>
+<main>
+  <section class="card" id="form-card">
+    <div class="row">
+      <div>
+        <label for="date">日付</label>
+        <input type="date" id="date">
+      </div>
+      <div>
+        <label for="club">番手</label>
+        <select id="club"></select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="height">高さ</label>
+        <select id="height">
+          <option value="高">高</option>
+          <option value="中" selected>中</option>
+          <option value="低">低</option>
+        </select>
+      </div>
+      <div>
+        <label for="start">打ち出し方向</label>
+        <select id="start">
+          <option value="左">左</option>
+          <option value="センター" selected>センター</option>
+          <option value="右">右</option>
+        </select>
+      </div>
+      <div>
+        <label for="curve">曲がり</label>
+        <select id="curve">
+          <option value="ストレート" selected>ストレート</option>
+          <option value="ドロー">ドロー</option>
+          <option value="フェード">フェード</option>
+          <option value="フック">フック</option>
+          <option value="スライス">スライス</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="strike">打点</label>
+        <select id="strike">
+          <option value="センター" selected>センター</option>
+          <option value="薄い(トップ)">薄い(トップ)</option>
+          <option value="ダフリ">ダフリ</option>
+          <option value="トゥ">トゥ</option>
+          <option value="ヒール">ヒール</option>
+        </select>
+      </div>
+      <div>
+        <label for="carry">キャリー(任意・yd)</label>
+        <input type="number" inputmode="decimal" id="carry" placeholder="例: 155">
+      </div>
+      <div>
+        <label for="quality">出来（主観）</label>
+        <select id="quality">
+          <option value="◎">◎</option>
+          <option value="○" selected>○</option>
+          <option value="△">△</option>
+          <option value="×">×</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <label for="note">メモ</label>
+      <textarea id="note" placeholder="風、ライ、狙い、反省点など"></textarea>
+    </div>
+    <div class="toolbar">
+      <button class="primary" id="add">記録する</button>
+      <button class="ghost" id="clearForm">入力クリア</button>
+    </div>
+    <div class="toolbar">
+      <span class="tag">保存先: この端末のブラウザ(LocalStorage)</span>
+      <span class="tag">通信不要</span>
+      <span class="tag">データは端末内のみ</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="toolbar" style="justify-content:space-between;align-items:center">
+      <strong>最近の記録</strong>
+      <div class="toolbar">
+        <button id="exportBtn">CSVエクスポート</button>
+        <label class="tag" style="cursor:pointer">CSVインポート<input type="file" id="importFile" accept=".csv" style="display:none"></label>
+        <button id="wipe" style="color:#ef4444;border-color:#ef4444">すべて削除</button>
+      </div>
+    </div>
+    <div style="overflow:auto;margin-top:8px">
+      <table id="logTable">
+        <thead>
+          <tr>
+            <th>日付</th><th>番手</th><th>高さ</th><th>打ち出し</th><th>曲がり</th><th>打点</th><th>出来</th><th>キャリー(yd)</th><th>メモ</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <strong>番手別サマリー</strong>
+    <div id="stats" class="stat" style="margin-top:8px"></div>
+    <p class="muted" style="margin-top:6px">※ キャリー平均は数値入力があるデータのみで計算</p>
+  </section>
+</main>
+
+<script>
+// JavaScript部分は元のまま
+</script>
+</body>
+</html>
