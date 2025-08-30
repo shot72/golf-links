@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>弾道＆番手メモ（番手選択版）</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0f172a;
+      color: #e5e7eb;
+      font-family: system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+      font-size: 1.1rem;
+      line-height: 1.5;
+    }
+    header {
+      background: #111827;
+      padding: 12px 16px;
+      border-bottom: 1px solid #1f2937;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+    main {
+      padding: 16px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #0b1220;
+      color: #e5e7eb;
+      font-size: 1rem;
+    }
+    button {
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .primary {
+      background: #22c55e;
+      color: #07210f;
+      border: 0;
+    }
+    .ghost {
+      background: #0b1220;
+      border: 1px dashed #334155;
+      color: #9ca3af;
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>弾道＆番手メモ</h1>
+</header>
+<main>
+  <section class="card">
+    <label for="date">日付</label>
+    <input type="date" id="date">
+
+    <label for="club">番手</label>
+    <select id="club"></select>
+
+    <div class="toolbar">
+      <button class="primary" id="add">記録する</button>
+      <button class="ghost" id="clearForm">入力クリア</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 style="font-size:1rem;margin-top:0">最近の記録</h2>
+    <ul id="log" style="list-style:none;padding:0;margin:0;color:#cbd5e1"></ul>
+  </section>
+</main>
+
+<script>
+// ===== 番手の候補リスト =====
+const CLUBS = [
+  "DR(1W)","3W","5W","7W",
+  "3U","4U","5U",
+  "3I","4I","5I","6I","7I","8I","9I",
+  "PW","AW","SW","LW"
+];
+
+// 要素参照
+const els = {
+  date: document.getElementById('date'),
+  club: document.getElementById('club'),
+  add: document.getElementById('add'),
+  clear: document.getElementById('clearForm'),
+  log: document.getElementById('log')
+};
+
+// 今日の日付を yyyy-mm-dd 形式で返す
+function today(){
+  const d = new Date();
+  const tz = d.getTimezoneOffset();
+  return new Date(d.getTime()-tz*60000).toISOString().slice(0,10);
+}
+
+// 番手セレクトを初期化
+function initClubOptions(){
+  els.club.innerHTML = "";
+  CLUBS.forEach(name=>{
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    els.club.appendChild(opt);
+  });
+  if(CLUBS.includes("7I")) els.club.value = "7I";
+}
+
+// 入力クリア
+function clearForm(){
+  els.date.value = today();
+  els.club.value = "7I";
+}
+
+// 記録を追加して画面に表示
+function addRecord(){
+  const li = document.createElement('li');
+  li.textContent = `${els.date.value} - ${els.club.value}`;
+  els.log.prepend(li);
+}
+
+// 初期化
+initClubOptions();
+clearForm();
+
+// イベント
+els.clear.addEventListener('click', clearForm);
+els.add.addEventListener('click', addRecord);
+</script>
+</body>
+</html>
